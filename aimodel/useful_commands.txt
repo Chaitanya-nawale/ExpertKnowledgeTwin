@@ -1,0 +1,36 @@
+pip3 install --user uv
+export PATH=$HOME/.local/bin:$PATH
+uv --version
+uv python install 3.11
+uv venv
+uv pip install sci-kit
+srun --gres=gpu:1 --pty bash
+module load gcc/11.3.0
+module load cuda/12.1.1
+uv pip install vllm
+mkdir -p ~/.huggingface
+echo "your_actual_token_here" > ~/.huggingface/token
+chmod 600 ~/.huggingface/token
+mkdir -p ~/.hfcache
+cd aimodel/
+squeue --me
+srun --gres=gpu:1 --pty bash 
+srun --jobid=2724443 --pty bash
+
+uv pip install sentence-transformers faiss-cpu onnxruntime
+
+vllm serve "mistralai/Mistral-7B-Instruct-v0.3" --host 0.0.0.0 --port 16520 --api-key expertKey --dtype half --tokenizer-mode mistral &
+
+uv pip install --upgrade bitsandbytes>=0.46.1
+
+huggingface-cli download openai/gpt-oss-20b --local-dir ./gpt-oss-20b
+
+huggingface-cli download unsloth/gpt-oss-20b-unsloth-bnb-4bit --local-dir ./gpt-oss-20b-unsloth-bnb-4bit
+
+uv pip install unsloth
+
+uv pip install re
+
+vllm serve ./gpt-oss-20b --host 0.0.0.0 --port 16520 --api-key expertKey --tokenizer-mode auto --dtype float16 --max-model-len 65536 --quantization gptq &
+
+sbatch ./aimodel/llamaMistral3host.sh
