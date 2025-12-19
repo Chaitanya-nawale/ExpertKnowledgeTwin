@@ -33,3 +33,6 @@ generic AI tools as the platform scales.
 Folder Name | Description 
 --- | --- 
 n8n_workflows | contains all the n8n workflows that we have in order to support our system.
+supabase | contains supabase migration script
+aimodel | contains llm hosting code and useful commands. llamaMistral3host.sh is the main script to run the llm. However, environment and llama setup might be needed before running the script. Please check useful_commands.txt and loadllama.sh for the setup.
+embeddingModel | contains embedding model hosting commands. hostMistralEmbedding.sh is the main script to run the embedding model.
