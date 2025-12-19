@@ -1,0 +1,381 @@
+{
+  "name": "InsertToVectorStore",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "insert-to-vector-store",
+        "authentication": "headerAuth",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        192,
+        320
+      ],
+      "id": "30404fd5-4b99-4174-8c59-74a6479c408e",
+      "name": "Webhook",
+      "webhookId": "19566c6c-e0a5-4a8f-ba1a-5203c2b663b7",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "vpqY16RSe1zUpXzW",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.1,
+      "position": [
+        1072,
+        320
+      ],
+      "id": "7c738e6c-135e-4916-a156-9cc41b8f7f19",
+      "name": "Supabase Vector Store",
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": true,
+      "credentials": {
+        "supabaseApi": {
+          "id": "7ARdh2iKV1vgOS7Q",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "expert_id",
+                "value": "={{ $('Code').item.json.expert_id }}"
+              },
+              {
+                "name": "source_id",
+                "value": "={{ $('Code').item.json.source_id }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1,
+      "position": [
+        1184,
+        544
+      ],
+      "id": "f7232cb9-01b7-4aa5-8bfc-dc42ef5623ad",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {
+        "chunkOverlap": 200,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        1184,
+        720
+      ],
+      "id": "e28f1004-9cae-4dc7-9a6f-ea9867457f94",
+      "name": "Recursive Character Text Splitter"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "dab34521-ffef-41db-9eb3-8985fd108466",
+              "name": "text",
+              "value": "={{ $('Code').item.json.extracted_text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        848,
+        320
+      ],
+      "id": "fc11aee8-cf77-4939-814b-82d93895b324",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Example: run this in an n8n Code node (JavaScript)\n\nlet expert_id;\nlet source_id;\n\ntry {\n  const webhookData = $('Webhook').first();\n  if (webhookData && webhookData.json?.body?.filePath) {\n    const path = webhookData.json.body.filePath;\n    expert_id = path.split('/')[0];\n    source_id = webhookData.json.body.source_id;\n  }\n} catch (e) {\n  // Webhook not executed or doesn't exist in this context\n  expert_id = $input.first().json.expert_id;\n  source_id = $input.first().json.source_id;\n}\n\nconst extracted_text = $input.first().json.extracted_text;\n\nreturn [\n  {\n    json: {\n      expert_id,\n      extracted_text,\n      source_id\n    },\n  },\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        320
+      ],
+      "id": "fa93df99-bff1-4fc9-b2cf-a34ecd8e0a23",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "kHFE38MkinBbukur",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/kHFE38MkinBbukur",
+          "cachedResultName": "ExtractText"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "filePath": "={{ $json.body.filePath }}"
+          },
+          "matchingColumns": [
+            "filePath"
+          ],
+          "schema": [
+            {
+              "id": "filePath",
+              "displayName": "filePath",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        384,
+        320
+      ],
+      "id": "6dbfc636-40a1-469f-a201-c3c0bb87905d",
+      "name": "Extract Text"
+    },
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "notebook_id"
+            },
+            {
+              "name": "extracted_text"
+            },
+            {
+              "name": "source_id"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        384,
+        144
+      ],
+      "id": "470c2de3-b179-45fd-ab30-a1f69286e42a",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "model": "Linq-Embed-Mistral",
+        "options": {
+          "encodingFormat": "float"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1072,
+        544
+      ],
+      "id": "403b1a46-6111-4891-8592-6b21ad2e380c",
+      "name": "Local OpenAI Embeddings",
+      "credentials": {
+        "openAiApi": {
+          "id": "gHANBCkjERtQIyjS",
+          "name": "OpenAi account"
+        }
+      }
+    }
+  ],
+  "pinData": {
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "expertsai.app.n8n.cloud",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+            "content-length": "105",
+            "accept": "*/*",
+            "accept-encoding": "gzip, br",
+            "accept-language": "fr-BE,fr;q=0.9,nl-BE;q=0.8,nl;q=0.7,fr-FR;q=0.6,en-US;q=0.5,en;q=0.4",
+            "authorization": "KSp5XK7E90YJ9C4KoyyXjGp908dY0Nfyu3S0",
+            "cdn-loop": "cloudflare; loops=1; subreqs=1",
+            "cf-connecting-ip": "185.25.193.158",
+            "cf-ew-via": "15",
+            "cf-ipcountry": "CH",
+            "cf-ray": "9abf328be2e527b7-LYS",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-worker": "n8n.cloud",
+            "content-type": "application/json",
+            "dnt": "1",
+            "origin": "https://xperts.lovable.app",
+            "priority": "u=1, i",
+            "referer": "https://xperts.lovable.app/",
+            "sec-ch-ua": "\"Chromium\";v=\"142\", \"Google Chrome\";v=\"142\", \"Not_A Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "185.25.193.158, 162.158.13.160",
+            "x-forwarded-host": "expertsai.app.n8n.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "traefik-prod-users-gwc-86-76bcc99db7-w67rh",
+            "x-is-trusted": "yes",
+            "x-real-ip": "185.25.193.158"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "filePath": "ziba/1765395451152-itv_QA_organized.pdf",
+            "source_id": "fa62d687-a718-47c9-9701-7fd7ce70f138"
+          },
+          "webhookUrl": "https://expertsai.app.n8n.cloud/webhook/insert-to-vector-store",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recursive Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store": {
+      "main": [
+        []
+      ]
+    },
+    "Extract Text": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Local OpenAI Embeddings": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "4b6913e6-f8b0-446a-93b3-c4195a6a7b2e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ec01ac74f1de23070702e1b0f1e703cfcb6ec2aeeeff48fdc68a0e2de91677a3"
+  },
+  "id": "HJQp1kWFGdeDLxYE",
+  "tags": []
+}

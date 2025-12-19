@@ -1,0 +1,309 @@
+{
+  "name": "ExtractText",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "filePath"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        384
+      ],
+      "id": "cd68e97b-87fa-4923-a9a2-204900249050",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "url": "=https://umtdefiribevmcdvufho.supabase.co/storage/v1/object/public/expert-content/{{ $json.filePath }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        464,
+        384
+      ],
+      "id": "c2845d48-9192-48e9-bf8b-9dbb026312b3",
+      "name": "Download File"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.headers[\"content-type\"] }}",
+                    "rightValue": "application/pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "dc0dbe8c-70d5-4127-95f8-0fbd3f1a6bad"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "2307a9d5-7872-49dc-9aeb-60697b91dc84",
+                    "leftValue": "={{ $json.headers[\"content-type\"] }}",
+                    "rightValue": "audio/mpeg",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "87532eb7-b821-4d84-9d8e-c17136b0a88a",
+                    "leftValue": "={{ $json.headers[\"content-type\"] }}",
+                    "rightValue": "text/plain",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        688,
+        368
+      ],
+      "id": "0b8608e8-b826-469d-b806-ee28e1d62bc6",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1,
+      "position": [
+        912,
+        192
+      ],
+      "id": "a9e5b09e-706d-4b73-a6a1-3a7d39da0a65",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        912,
+        384
+      ],
+      "id": "2c1989e6-5a58-4e63-889b-ad8825c7ed6e",
+      "name": "OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "kgabQMSKIwWcuYB0",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1f5bee5d-939c-4df3-8e7d-0696ac3aa702",
+              "name": "text",
+              "value": "={{ $('Download File').item.json.data }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        912,
+        576
+      ],
+      "id": "b9c27536-c592-4791-bd78-dbbf4a68fc3b",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9fea51c0-b3a9-49b5-8608-3264c9d00304",
+              "name": "extracted_text",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1136,
+        384
+      ],
+      "id": "bad0ac97-7416-4534-8ec6-07c311b0cb6c",
+      "name": "Extracted Text"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Download File": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Download File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Extracted Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Extracted Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Extracted Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extracted Text": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "9b7ea618-83fc-4f75-93bc-32918628d844",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ec01ac74f1de23070702e1b0f1e703cfcb6ec2aeeeff48fdc68a0e2de91677a3"
+  },
+  "id": "kHFE38MkinBbukur",
+  "tags": []
+}

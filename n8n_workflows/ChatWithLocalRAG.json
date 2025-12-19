@@ -1,0 +1,263 @@
+{
+  "name": "ChatWithLocalRAG",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.body.prompt }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=You are tasked with answering a question as an expert using provided chunks of information. Answer as if you are talking as a real expert with the provided knowledge.\n\nYour goal is to provide a very accurate answer. Please answer questions based only on her real-life experiences, knowledge areas, values, and communication style, while maintaining strict guardrails for safety, accuracy, and professionalism. If a question falls outside of the provided context, politely acknowledge limits. \n\nIMPORTANT: You MUST trigger the \"Supabase Vector Store\" tool\nIMPORTANT: Only based your answers on information in the provided chunks from the vector store.\n\nRules:\n- Use only information found in the context.\n- Do not add outside knowledge.\n- Do not invent personal experience.\n- Maintain a friendly, professional tone similar to the context.\n- Do NOT Make political, religious, sensitive claims.\n- If the context does not contain the answer, use the fallback text exactly as written.\n\nFallback text:\nSorry, I don't know.\n\nReturn ONLY valid JSON in this exact format:\n\n{\n  \"output\": [\n    {\n      \"text\": \"<answer>\"\n    }\n  ]\n}\n\nConstraints:\n- No extra keys\n- No explanations\n- No markdown\n- No text outside the JSON\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.9,
+      "position": [
+        560,
+        368
+      ],
+      "id": "cc63ae2e-d5b3-4764-b607-74fbc2d5d1a1",
+      "name": "AI Agent",
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.body.session_id }}",
+        "contextWindowLength": 20
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        496,
+        592
+      ],
+      "id": "78197208-d7ed-45a6-8f45-bc1180787c26",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "2UA8Tn4Dolk6lbJa",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolName": "retrieve_knowledge",
+        "toolDescription": "Retrieve releveant information",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "topK": 10,
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "expert_id",
+                "value": "={{ $json.body.expert_id }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1.1,
+      "position": [
+        624,
+        592
+      ],
+      "id": "f1bd4c13-fed3-49bc-ac5e-0c8ff81f9366",
+      "name": "Supabase Vector Store",
+      "credentials": {
+        "supabaseApi": {
+          "id": "7ARdh2iKV1vgOS7Q",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{ \"output\": [ { \"text\": \"...\" } ] }",
+        "autoFix": true
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        896,
+        592
+      ],
+      "id": "3e7b993f-dbe4-4c52-8d72-8d2d4c2dc89e",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "call-local-rag",
+        "authentication": "headerAuth",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        144,
+        368
+      ],
+      "id": "ba255909-a7a8-44a8-b71d-720f8164a83a",
+      "name": "Webhook1",
+      "webhookId": "625177cd-c6b1-4bd1-ae90-6a3c30dce86e",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "vpqY16RSe1zUpXzW",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "Ministral-3-14B-Instruct-2512",
+          "mode": "list",
+          "cachedResultName": "Ministral-3-14B-Instruct-2512"
+        },
+        "responsesApiEnabled": false,
+        "options": {
+          "frequencyPenalty": 0,
+          "maxTokens": -1,
+          "presencePenalty": 0,
+          "temperature": 0.7,
+          "topP": 0.9
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        336,
+        592
+      ],
+      "id": "5f0aa18f-ec65-4bde-a610-5b871f2a5c33",
+      "name": "OpenAI Local Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "gHANBCkjERtQIyjS",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "Linq-Embed-Mistral",
+        "options": {
+          "dimensions": 1024,
+          "encodingFormat": "float"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        624,
+        752
+      ],
+      "id": "e8c06cab-2188-4ac9-bcd2-3467e38a8280",
+      "name": "Local OpenAI Embeddings",
+      "credentials": {
+        "openAiApi": {
+          "id": "gHANBCkjERtQIyjS",
+          "name": "OpenAi account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Local Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          },
+          {
+            "node": "Structured Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Local OpenAI Embeddings": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "36f7f0ae-793d-4770-9cb2-1d72e71dff73",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "ec01ac74f1de23070702e1b0f1e703cfcb6ec2aeeeff48fdc68a0e2de91677a3"
+  },
+  "id": "gdjuvIzYWvgLb3E5",
+  "tags": []
+}
